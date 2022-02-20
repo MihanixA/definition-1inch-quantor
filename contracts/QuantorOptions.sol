@@ -16,7 +16,7 @@ import "./interfaces/IQuantorOptions.sol";
 import "./interfaces/IQuantorGovernance.sol";
 
 
-contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGuard {
+contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IQuantorGovernance public quantorGovernance;
@@ -25,7 +25,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
     mapping(bytes32 => uint256) public nftIdToOptionConfigHash;
     mapping(uint256 => address) public optionProviderToNftId;
 
-    uint256 private _topNft = 1;
+    uint256 private _topNft;
 
     constructor(address quantorGovernance_, address limitOrderProtocol_)
         ERC721("QOPTS", "Quantor Options Protocol") 
@@ -34,21 +34,23 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
         limitOrderProtocol = ILimitOrderProtocol(limitOrderProtocol_);
     }
 
-    function mintOption(OptionConfig memory optionConfig) external nonReentrant {
+    function mintOption(OptionConfig memory optionConfig) external nonReentrant returns (uint256 nftId) {
         _validateOptionConfig(optionConfig);
 
         IERC20(optionConfig.makerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.makerAmount);
         IERC20(optionConfig.makerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.makerAmount);
 
-        ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig);
+        nftId = ++_topNft;
+
+        ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
+        order.receiver = msg.sender;
 
         _safeMint(msg.sender, _topNft);
-        limitOrderProtocol.fillOrder(order, "", optionConfig.makerAmount, 0, optionConfig.takerAmount);
+        limitOrderProtocol.fillOrderTo(order, "", optionConfig.makerAmount, 0, optionConfig.takerAmount, address(this));
 
         bytes32 hashOptionConfig = _hashOptionConfig(optionConfig);
-        nftIdToOptionConfigHash[hashOptionConfig] = _topNft;
-        optionProviderToNft[_topNft] = msg.sender;
-        ++_topNft;
+        nftIdToOptionConfigHash[hashOptionConfig] = nftId;
+        optionProviderToNftId[nftId] = msg.sender;
     }
 
     function burnOptionCall(OptionConfig memory optionConfig) external nonReentrant {
@@ -61,10 +63,10 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
         IERC20(optionConfig.takerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.takerAmount);
         IERC20(optionConfig.takerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.takerAmount);
 
-        ILimitOrderProtcol.Order memory order = _constructOrderPart(optionConfig);
-        limitOrderProtocol.fillOrder(order, "", 0, optionConfig.takerAmount, optionConfig.makerAmount);
+        ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
+        limitOrderProtocol.fillOrderTo(order, "", 0, optionConfig.takerAmount, optionConfig.makerAmount, msg.sender);
 
-        IERC20(optionConfig.makerAssetAddress).safeTransfer(optionProviderToNft[nftId], optionConfig.takerAmount);
+        IERC20(optionConfig.makerAssetAddress).safeTransfer(msg.sender, optionConfig.makerAmount);
 
         _burn(nftId);
     }
@@ -79,10 +81,6 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
         IERC20(optionConfig.makerAssetAddress).safeTransfer(optionProviderToNftId[nftId], optionConfig.makerAmount);
 
         _burn(nftId);
-    }
-
-    function hashOptionConfig(OptionConfig memory optionConfig) public pure returns (bytes32) {
-        return keccak256(abi.encode(optionConfig));
     }
 
     function supportsInterface(bytes4 interfaceId) public pure override (ERC721) returns(bool) {
@@ -100,7 +98,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
         require(optionConfig.endTimestamp > optionConfig.beginTimestamp);
     }
 
-    function _constructOrderPart(OptionConfig memory optionConfig) 
+    function _constructOrderPart(OptionConfig memory optionConfig, uint256 nftId) 
         private view 
         returns (ILimitOrderProtocol.Order memory order) 
     {
@@ -109,11 +107,10 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
         order.allowedSender = address(this);
         order.makerAsset = optionConfig.makerAssetAddress;
         order.takerAsset = optionConfig.takerAssetAddress;
-        order.receiver = address(this);
-        order.makerAssetData = "";
-        order.takerAssetData = "";
-        order.interaction = "";
-        order.predicate = "";
-        order.permit = "";
+        order.receiver = optionProviderToNftId[nftId];
+    }
+
+    function _hashOptionConfig(OptionConfig memory optionConfig) private pure returns (bytes32) {
+        return keccak256(abi.encode(optionConfig));
     }
 }
