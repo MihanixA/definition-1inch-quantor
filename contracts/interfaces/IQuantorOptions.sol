@@ -2,6 +2,7 @@
 pragma solidity 0.8.12;
 
 import "./IQuantorGovernance.sol";
+import "./external/ILimitOrderProtocol.sol";
 
 interface IQuantorOptions {
     struct OptionConfig {
@@ -15,6 +16,8 @@ interface IQuantorOptions {
     }
 
     function quantorGovernance() external view returns (IQuantorGovernance);
+
+    function limitOrderProtocol() external view returns (ILimitOrderProtocol);
 
     function mintOption(OptionConfig memory optionConfig) external returns (uint256);
 

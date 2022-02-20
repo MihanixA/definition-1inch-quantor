@@ -42,5 +42,7 @@ interface ILimitOrderProtocol {
         address target
     ) external returns(uint256 /* actualMakingAmount */, uint256 /* actualTakingAmount */);
 
+    function cancelOrder(Order memory order) external;
+
     function hashOrder(Order memory order) external view returns(bytes32);
 }

@@ -37,8 +37,14 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
     function mintOption(OptionConfig memory optionConfig) external nonReentrant returns (uint256 nftId) {
         _validateOptionConfig(optionConfig);
 
-        IERC20(optionConfig.makerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.makerAmount);
-        IERC20(optionConfig.makerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.makerAmount);
+        IERC20(optionConfig.makerAssetAddress).safeTransferFrom(
+            msg.sender, address(this),
+            optionConfig.makerAmount
+        );
+        IERC20(optionConfig.makerAssetAddress).safeIncreaseAllowance(
+            address(limitOrderProtocol),
+            optionConfig.makerAmount
+        );
 
         nftId = ++_topNft;
 
@@ -60,11 +66,25 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
         uint256 nftId = nftIdToOptionConfigHash[hashOptionConfig];
         require(msg.sender == ownerOf(nftId), "not option owner");
 
-        IERC20(optionConfig.takerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.takerAmount);
-        IERC20(optionConfig.takerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.takerAmount);
+        IERC20(optionConfig.takerAssetAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            optionConfig.takerAmount
+        );
+        IERC20(optionConfig.takerAssetAddress).safeIncreaseAllowance(
+            address(limitOrderProtocol),
+            optionConfig.takerAmount
+        );
 
         ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
-        limitOrderProtocol.fillOrderTo(order, "", 0, optionConfig.takerAmount, optionConfig.makerAmount, msg.sender);
+        limitOrderProtocol.fillOrderTo(
+            order,
+            "",
+            0,
+            optionConfig.takerAmount,
+            optionConfig.makerAmount,
+            msg.sender
+        );
 
         IERC20(optionConfig.makerAssetAddress).safeTransfer(msg.sender, optionConfig.makerAmount);
 
@@ -78,7 +98,13 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
         uint256 nftId = nftIdToOptionConfigHash[hashOptionConfig];
         require(msg.sender == ownerOf(nftId), "not option owner");
 
-        IERC20(optionConfig.makerAssetAddress).safeTransfer(optionProviderToNftId[nftId], optionConfig.makerAmount);
+        IERC20(optionConfig.makerAssetAddress).safeTransfer(
+            optionProviderToNftId[nftId],
+            optionConfig.makerAmount
+        );
+
+        ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
+        limitOrderProtocol.cancelOrder(order);
 
         _burn(nftId);
     }
