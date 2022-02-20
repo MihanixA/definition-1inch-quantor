@@ -33,6 +33,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable {
         require(quantorGovernance.isWhitelistedAsset(optionConfig.makerAssetAddress));
         require(quantorGovernance.isWhitelistedAsset(optionConfig.takerAssetAddress));
         IERC20(optionConfig.makerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.makerAmount);
+        IERC20(optionConfig.makerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.makerAmount);
         ILimitOrderProtocol.Order memory order;
         order.salt = optionConfig.salt;
         order.makerAsset = optionConfig.makerAssetAddress;
