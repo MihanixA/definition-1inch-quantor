@@ -24,12 +24,17 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
     mapping(uint256 => address) public optionProviderToNftId;
 
     uint256 private _topNft;
+    uint256 private _tmpTakerAmount;
 
     constructor(address quantorGovernance_, address limitOrderProtocol_)
         ERC721("QOPTS", "Quantor Options Protocol") 
     {
         quantorGovernance = IQuantorGovernance(quantorGovernance_);
         limitOrderProtocol = ILimitOrderProtocol(limitOrderProtocol_);
+    }
+
+    function getTakerAmount(uint256) external returns (uint256) {
+        return _tmpTakerAmount;
     }
 
     function mintOption(OptionConfig memory optionConfig) external nonReentrant returns (uint256 nftId) {
@@ -48,6 +53,8 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
 
         ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
         order.receiver = msg.sender;
+        _tmpTakerAmount = optionConfig.takerAmount;
+        order.getMakerAmount = abi.encodePacked(address(this), this.getTakerAmount.selector);
 
         _safeMint(msg.sender, _topNft);
         limitOrderProtocol.fillOrderTo(
@@ -57,7 +64,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
                 limitOrderProtocol.hashOrder(order)
             )),
             optionConfig.makerAmount,
-            optionConfig.takerAmount,
+            0,
             optionConfig.takerAmount,
             address(this)
         );
