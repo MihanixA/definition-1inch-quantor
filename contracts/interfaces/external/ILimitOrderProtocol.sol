@@ -41,4 +41,6 @@ interface ILimitOrderProtocol {
         uint256 thresholdAmount,
         address target
     ) external returns(uint256 /* actualMakingAmount */, uint256 /* actualTakingAmount */);
+
+    function hashOrder(Order memory order) external view returns(bytes32);
 }
