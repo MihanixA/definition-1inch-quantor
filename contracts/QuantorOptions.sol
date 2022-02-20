@@ -22,7 +22,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable {
     }
 
     function mintOption(OptionConfig memory optionConfig) external {
-
+        
     }
 
     function burnOption(OptionConfig memory optionConfig) external {
