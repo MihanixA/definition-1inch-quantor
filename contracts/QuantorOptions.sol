@@ -4,10 +4,7 @@ pragma solidity 0.8.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/external/ILimitOrderProtocol.sol";
@@ -104,7 +101,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
         );
 
         ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
-        limitOrderProtocol.cancelOrder(order);
+        limitOrderProtocol.cancelOrder(order);  // gas optimization
 
         _burn(nftId);
     }
