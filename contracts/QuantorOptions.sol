@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import "./interfaces/external/ILimitOrderProtocol.sol";
 
@@ -19,8 +20,11 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable {
 
     IQuantorGovernance public quantorGovernance;
     ILimitOrderProtocol public limitOrderProtocol;
+
     mapping(uint256 => bytes32) public optionConfigHashToNftId;
+    mapping(bytes32 => uint256) public nftIdToOptionConfigHash;
     mapping(uint256 => bytes32) public limitOrderHashToNftId;
+    mapping(uint256 => address) public optionProviderToNftId;
 
     uint256 private _topNft = 1;
 
@@ -29,30 +33,32 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable {
         limitOrderProtocol = ILimitOrderProtocol(limitOrderProtocol_);
     }
 
-    function mintOption(OptionConfig memory optionConfig) external {
+    function mintOption(OptionConfig memory optionConfig, bytes calldata signature) external {
         require(quantorGovernance.isWhitelistedAsset(optionConfig.makerAssetAddress));
         require(quantorGovernance.isWhitelistedAsset(optionConfig.takerAssetAddress));
+        bytes32 hashOptionConfig = _hashOptionConfig(optionConfig);
+        require(SignatureChecker.isValidSignatureNow(msg.sender, hashOptionConfig, signature));
         IERC20(optionConfig.makerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.makerAmount);
         IERC20(optionConfig.makerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.makerAmount);
-        ILimitOrderProtocol.Order memory order;
-        order.salt = optionConfig.salt;
-        order.makerAsset = optionConfig.makerAssetAddress;
-        order.takerAsset = optionConfig.takerAssetAddress;
-        order.maker = address(this);
-        order.allowedSender = address(this);
-        order.makingAmount = optionConfig.makerAmount;
-        order.takingAmount = 0;
-        order.predicate = "";
-        order.permit = "";
-        order.interaction = "";
+        ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig);
         limitOrderProtocol.fillOrderTo(order, "", optionConfig.makerAmount, 0, optionConfig.takerAmount, address(this));
         _safeMint(msg.sender, _topNft);
-        optionConfigHashToNftId[_topNft] = hashOptionConfig(optionConfig);
+        nftIdToOptionConfigHash[hashOptionConfig] = _topNft;
         limitOrderHashToNftId[_topNft] = limitOrderProtocol.hashOrder(order);
+        ++_topNft;
     }
 
-    function burnOption(OptionConfig memory optionConfig) external {
-        // TODO
+    function burnOptionCall(OptionConfig memory optionConfig, bytes calldata signature) external {
+        require(block.timestamp > optionConfig.beginTimestamp);
+        uint256 nftId = nftIdToOptionConfigHash[hashOptionConfig(optionConfig)];
+        require(msg.sender == ownerOf(nftId), "not option owner");
+        IERC20(optionConfig.takerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.takerAmount);
+        ILimitOrderProtcol.Order memory order = _constructOrderPart(optionConfig);
+        limitOrderProtocol.fillOrderTo(order);
+    }
+
+    function burnOptionExpired(OptionConfig memory optionConfig) external {
+        require(block.timestamp > optionConfig.endTimestamp);
     }
 
     function hashOptionConfig(OptionConfig memory optionConfig) public pure returns (bytes32) {
@@ -65,5 +71,22 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable {
             interfaceId == type(IERC721).interfaceId ||
             interfaceId == type(IQuantorOptions).interfaceId
         );
+    }
+
+    function _constructOrderPart(OptionConfig memory optionConfig) 
+        private view 
+        returns (ILimitOrderProtocol.Order memory order) 
+    {
+        order.salt = optionConfig.salt;
+        order.maker = address(this);
+        order.allowedSender = address(this);
+        order.makerAsset = optionConfig.makerAssetAddress;
+        order.takerAsset = optionConfig.takerAssetAddress;
+        order.receiver = address(this);
+        order.makerAssetData = "";
+        order.takerAssetData = "";
+        order.interaction = "";
+        order.predicate = "";
+        order.permit = "";
     }
 }
