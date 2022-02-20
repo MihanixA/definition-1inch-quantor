@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+import "./IQuantorGovernance.sol";
+
 interface IQuantorOptions {
     struct OptionConfig {
         uint256 salt;
@@ -11,6 +13,8 @@ interface IQuantorOptions {
         address makerAssetAddress;
         address takerAssetAddress;
     }
+
+    function quantorGovernance() external view returns (IQuantorGovernance);
 
     function optionConfigHashToNftId(bytes32 optionConfigHash) external returns (uint256 nftId);
 
