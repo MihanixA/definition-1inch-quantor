@@ -22,9 +22,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
     IQuantorGovernance public quantorGovernance;
     ILimitOrderProtocol public limitOrderProtocol;
 
-    mapping(uint256 => bytes32) public optionConfigHashToNftId;
     mapping(bytes32 => uint256) public nftIdToOptionConfigHash;
-    mapping(uint256 => bytes32) public limitOrderHashToNftId;
     mapping(uint256 => address) public optionProviderToNftId;
 
     uint256 private _topNft = 1;
@@ -39,7 +37,6 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
     function mintOption(OptionConfig memory optionConfig) external nonReentrant {
         _validateOptionConfig(optionConfig);
 
-
         IERC20(optionConfig.makerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.makerAmount);
         IERC20(optionConfig.makerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.makerAmount);
 
@@ -50,22 +47,38 @@ contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable, ReentrancyGu
 
         bytes32 hashOptionConfig = _hashOptionConfig(optionConfig);
         nftIdToOptionConfigHash[hashOptionConfig] = _topNft;
-        limitOrderHashToNftId[_topNft] = limitOrderProtocol.hashOrder(order);
+        optionProviderToNft[_topNft] = msg.sender;
         ++_topNft;
     }
 
     function burnOptionCall(OptionConfig memory optionConfig) external nonReentrant {
         require(block.timestamp > optionConfig.beginTimestamp);
+
         bytes32 hashOptionConfig = _hashOptionConfig(optionConfig);
         uint256 nftId = nftIdToOptionConfigHash[hashOptionConfig];
         require(msg.sender == ownerOf(nftId), "not option owner");
+
         IERC20(optionConfig.takerAssetAddress).safeTransferFrom(msg.sender, address(this), optionConfig.takerAmount);
+        IERC20(optionConfig.takerAssetAddress).safeIncreaseAllowance(address(limitOrderProtocol), optionConfig.takerAmount);
+
         ILimitOrderProtcol.Order memory order = _constructOrderPart(optionConfig);
-        limitOrderProtocol.fillOrderTo(order);
+        limitOrderProtocol.fillOrder(order, "", 0, optionConfig.takerAmount, optionConfig.makerAmount);
+
+        IERC20(optionConfig.makerAssetAddress).safeTransfer(optionProviderToNft[nftId], optionConfig.takerAmount);
+
+        _burn(nftId);
     }
 
     function burnOptionExpired(OptionConfig memory optionConfig) external nonReentrant {
         require(block.timestamp > optionConfig.endTimestamp);
+
+        bytes32 hashOptionConfig = _hashOptionConfig(optionConfig);
+        uint256 nftId = nftIdToOptionConfigHash[hashOptionConfig];
+        require(msg.sender == ownerOf(nftId), "not option owner");
+
+        IERC20(optionConfig.makerAssetAddress).safeTransfer(optionProviderToNftId[nftId], optionConfig.makerAmount);
+
+        _burn(nftId);
     }
 
     function hashOptionConfig(OptionConfig memory optionConfig) public pure returns (bytes32) {
