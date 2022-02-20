@@ -12,6 +12,9 @@ import "./interfaces/IQuantorOptions.sol";
 
 
 contract QuantorOptions is IQuantorOptions {
+
+    mapping(bytes32 => uint256) public optionConfigHashToNftId;
+
     constructor() {}
 
     function mintOption(OptionConfig memory optionConfig) external {

@@ -12,7 +12,11 @@ interface IQuantorOptions {
         address takerAssetAddress;
     }
 
+    function optionConfigHashToNftId(bytes32 optionConfigHash) external returns (uint256 nftId);
+
     function mintOption(OptionConfig memory optionConfig) external;
 
     function burnOption(OptionConfig memory optionConfig) external;
+
+    function hashOptionConfig(OptionConfig memory optionConfig) external pure returns (bytes32);
 }
