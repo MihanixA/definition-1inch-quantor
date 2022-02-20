@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import "./interfaces/external/ILimitOrderProtocol.sol";
 
@@ -49,7 +50,17 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
         order.receiver = msg.sender;
 
         _safeMint(msg.sender, _topNft);
-        limitOrderProtocol.fillOrderTo(order, "", optionConfig.makerAmount, 0, optionConfig.takerAmount, address(this));
+        limitOrderProtocol.fillOrderTo(
+            order,
+            abi.encodePacked(ECDSA.toTypedDataHash(
+                limitOrderProtocol.DOMAIN_SEPARATOR(),
+                limitOrderProtocol.hashOrder(order)
+            )),
+            optionConfig.makerAmount,
+            0,
+            optionConfig.takerAmount,
+            address(this)
+        );
 
         bytes32 hashOptionConfig = _hashOptionConfig(optionConfig);
         nftIdToOptionConfigHash[hashOptionConfig] = nftId;
@@ -76,7 +87,10 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
         ILimitOrderProtocol.Order memory order = _constructOrderPart(optionConfig, nftId);
         limitOrderProtocol.fillOrderTo(
             order,
-            "",
+            abi.encodePacked(ECDSA.toTypedDataHash(
+                limitOrderProtocol.DOMAIN_SEPARATOR(),
+                limitOrderProtocol.hashOrder(order)
+            )),
             0,
             optionConfig.takerAmount,
             optionConfig.makerAmount,

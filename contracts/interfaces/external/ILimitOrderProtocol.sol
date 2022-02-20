@@ -45,4 +45,6 @@ interface ILimitOrderProtocol {
     function cancelOrder(Order memory order) external;
 
     function hashOrder(Order memory order) external view returns(bytes32);
+
+    function DOMAIN_SEPARATOR() external view returns(bytes32);
 }
