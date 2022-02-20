@@ -57,7 +57,7 @@ contract QuantorOptions is IQuantorOptions, ERC721, ReentrancyGuard {
                 limitOrderProtocol.hashOrder(order)
             )),
             optionConfig.makerAmount,
-            0,
+            optionConfig.takerAmount,
             optionConfig.takerAmount,
             address(this)
         );
