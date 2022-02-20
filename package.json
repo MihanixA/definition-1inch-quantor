@@ -1,0 +1,52 @@
+{
+    "name": "definition-1inch-quantor",
+    "version": "1.0.0",
+    "repository": "https://github.com/mihanixa/definition-1inch-quantor",
+    "scripts": {
+      "compile": "rm -rf artifacts && hardhat compile",
+      "deploy:localhost": "rm -rf artifacts && hardhat --network localhost deploy",
+      "deploy:hardhat": "rm -rf artifacts && hardhat --network hardhat deploy --tags hardhat",
+      "deploy:kovan": "rm -rf artifacts && hardhat --network kovan deploy --tags kovan",
+      "deploy:bsc": "rm -rf artifacts && hardhat --network bsc deploy --tags bsc",
+      "deploy:mainnet": "rm -rf artifacts && hardhat --network mainnet deploy --tags mainnet",
+      "verify:kovan": "rm -rf artifacts && hardhat compile && hardhat --network kovan etherscan-verify",
+      "verify:mainnet": "rm -rf artifacts && hardhat compile && hardhat --network mainnet etherscan-verify",
+      "verify:bsc": "rm -rf artifacts && hardhat compile && hardhat --network bsc etherscan-verify",
+      "test": "hardhat test --config hardhat.test.config.ts",
+      "gastest": "hardhat test --config hardhat.gastest.config.ts",
+      "size": "rm -rf artifacts && hardhat compile && hardhat size-contracts",
+      "prettier": "./node_modules/.bin/prettier -w contracts/**/*.sol"
+    },
+    "devDependencies": {
+      "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
+      "@nomiclabs/hardhat-etherscan": "^2.1.4",
+      "@nomiclabs/hardhat-waffle": "^2.0.0",
+      "@typechain/ethers-v5": "^8.0.3",
+      "@typechain/hardhat": "^3.0.0",
+      "@types/chai": "^4.2.22",
+      "@types/mocha": "^9.0.0",
+      "@types/node": "^14.17.21",
+      "@types/ramda": "^0.27.44",
+      "chai": "^4.3.4",
+      "ethereum-waffle": "^3.0.0",
+      "ethers": "^5.4.6",
+      "fast-check": "^2.20.0",
+      "hardhat": "^2.6.6",
+      "hardhat-contract-sizer": "^2.0.3",
+      "hardhat-deploy": "^0.9.1",
+      "hardhat-gas-reporter": "^1.0.4",
+      "prettier": "^2.4.1",
+      "prettier-plugin-solidity": "^1.0.0-beta.18",
+      "ramda": "^0.27.1",
+      "solidity-coverage": "^0.7.17",
+      "ts-node": "^10.2.0",
+      "typechain": "^6.0.3",
+      "typescript": "^4.3.5"
+    },
+    "dependencies": {
+      "@openzeppelin/contracts": "^4.4.0",
+      "@types/dotenv": "^8.2.0",
+      "dotenv": "^10.0.0",
+      "solc": "0.8.9"
+    }
+}

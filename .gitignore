@@ -1,0 +1,17 @@
+.vscode
+.DS_store
+build
+node_modules
+tmp
+cache
+artifacts
+.env
+yarn-error.log
+registry
+coverage
+coverage.json
+gas.txt
+deployments
+test/types
+docs
+tenderly.yaml
