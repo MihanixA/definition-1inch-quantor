@@ -15,7 +15,7 @@ import "./interfaces/IQuantorGovernance.sol";
 
 
 contract QuantorOptions is IQuantorOptions, ERC721, ERC721Burnable {
-    using SafeERC20 for ERC20;
+    using SafeERC20 for IERC20;
 
     IQuantorGovernance public quantorGovernance;
     ILimitOrderProtocol public limitOrderProtocol;
